@@ -35,30 +35,12 @@ class MavenScraper {
       releasesList = filteredReleases ::: releasesList
 
       if (releases.size != filteredReleases.size) {
+        println(s"Removed ${releases.size - filteredReleases.size} releases.")
         found = true
       } else {
         currentPage = currentPage + 1
       }
     }
-
-    println(
-      releasesList
-        .sortBy(_.date.getTime)
-        .reverse
-        .head
-        .date)
-    val diffHours = (releasesList
-      .sortBy(_.date.getTime)
-      .reverse
-      .head
-      .date
-      .getTime - latestRelease._2.getTime) / 60 / 60 / 1000
-
-    val stat = releasesList.size / diffHours
-    println(s"Sorted: ${releasesList == releasesList.sortBy(_.date.getTime)}")
-    println(s"New releases (since ${latestRelease._2}): ${releasesList.size}")
-    println(
-      s"The difference is $diffHours, which means on average $stat releases/h.")
 
     releasesList
   }
@@ -72,7 +54,7 @@ class MavenScraper {
     val releases = root.getElementListByName("tr", true)
 
     println(s"Retrieving releases from page $pageId.")
-    releases.asScala
+    val newReleases = releases.asScala
       .drop(1)
       .map { x =>
         val releaseDetails = x.getChildTagList.asScala
@@ -86,6 +68,21 @@ class MavenScraper {
       }
       .sortBy(_.date.getTime)
       .toList
+
+    println(s"Retrieved ${newReleases.size} releases on page $pageId")
+    newReleases
+  }
+
+  def printSummary(releases: List[MavenRelease]) = {
+    val maxTime = releases.reverse.head.date
+    val minTime = releases.head.date
+    val diffHours = (maxTime.getTime - minTime.getTime) / 60 / 60 / 1000
+
+    val avg = releases.size / diffHours
+    println(s"New releases (from: ${dateFormat
+      .format(minTime)} till ${dateFormat.format(maxTime)} ): ${releases.size}")
+    println(
+      s"The difference in hours is $diffHours, which means on average $avg releases/h.")
   }
 
 }
