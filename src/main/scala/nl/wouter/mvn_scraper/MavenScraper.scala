@@ -19,9 +19,48 @@ class MavenScraper {
   val staticURL = "http://maven-repository.com/artifact/latest?page=$PAGE_ID"
   val latestRelease: (String, Date) = ("", new Date)
 
-  def getUntilLatestRelease(): List[MavenRelease] = {
-    List()
+  def getUntilLatestRelease(
+      latestRelease: (String, Date)): List[MavenRelease] = {
+    println(s"Now retrieving releases until ${latestRelease._2}.")
 
+    /** TODO: Turn this into pretty fp code **/
+    var found = false
+    var currentPage = 1
+    var releasesList: List[MavenRelease] = Nil
+
+    while (!found) {
+      val releases = getReleasesByPage(currentPage)
+      val filteredReleases = releases.filter(_.date.after(latestRelease._2))
+
+      releasesList = filteredReleases ::: releasesList
+
+      if (releases.size != filteredReleases.size) {
+        found = true
+      } else {
+        currentPage = currentPage + 1
+      }
+    }
+
+    println(
+      releasesList
+        .sortBy(_.date.getTime)
+        .reverse
+        .head
+        .date)
+    val diffHours = (releasesList
+      .sortBy(_.date.getTime)
+      .reverse
+      .head
+      .date
+      .getTime - latestRelease._2.getTime) / 60 / 60 / 1000
+
+    val stat = releasesList.size / diffHours
+    println(s"Sorted: ${releasesList == releasesList.sortBy(_.date.getTime)}")
+    println(s"New releases (since ${latestRelease._2}): ${releasesList.size}")
+    println(
+      s"The difference is $diffHours, which means on average $stat releases/h.")
+
+    releasesList
   }
 
   def getReleasesByPage(pageId: Int): List[MavenRelease] = {
@@ -32,6 +71,7 @@ class MavenScraper {
 
     val releases = root.getElementListByName("tr", true)
 
+    println(s"Retrieving releases from page $pageId.")
     releases.asScala
       .drop(1)
       .map { x =>
