@@ -53,7 +53,6 @@ class MavenScraper {
 
     val releases = root.getElementListByName("tr", true)
 
-    println(s"Retrieving releases from page $pageId.")
     val newReleases = releases.asScala
       .drop(1)
       .map { x =>
