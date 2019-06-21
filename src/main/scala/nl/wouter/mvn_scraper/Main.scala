@@ -1,6 +1,7 @@
 package nl.wouter.mvn_scraper
 
 import java.text.SimpleDateFormat
+import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
 
 object Main {
 
@@ -17,11 +18,22 @@ object Main {
         .sortBy(_.date.getTime)
         .toList
      */
-    val releases = scraper.getUntilLatestRelease(latestRelease)
+    var releases: List[MavenRelease] = List()
+    var newReleases: List[MavenRelease] = List()
+    val ex = new ScheduledThreadPoolExecutor(1)
+    val task = new Runnable {
+      def run() = {
+        newReleases = scraper.getUntilLatestRelease(latestRelease)
+        val diff = newReleases.filterNot(releases.toSet)
 
-    scraper.printSummary(releases)
-    println(releases.reverse.head)
-    println(releases.head)
+        println(s"Diff in releases: ${diff.size}.")
+        diff.foreach(println)
+
+        releases = newReleases
+      }
+    }
+    val f = ex.scheduleAtFixedRate(task, 0, 10, TimeUnit.MINUTES)
+
   }
 
 }
